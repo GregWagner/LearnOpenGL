@@ -1,35 +1,30 @@
-TODO / possible improvements (review only, no code changed yet)
-
-CMake / build system
-- Project/target names are slightly awkward (`learn_opengl_01_creating_a_window`); choose shorter, consistent names.
-- Prefer vendoring GLFW/GLAD with documented versions, or use FetchContent/vcpkg, so the project is reproducible.
-- Remove the runtime `check_library_exists(dl dlopen ...)` probe if targeting modern Linux/glibc; it adds little value.
-- Add separate Debug/Release options, sanitizers, and maybe an `install`/export target later.
-- Consider precompiled headers or at least exclude the very large GLAD source from unnecessary rebuild pain.
-
-GLAD / OpenGL loader
-- Vendored GLAD is an older 0.1.36 generation requesting OpenGL 4.6; the app only requests a 3.3 core context.
-- Regenerate GLAD for OpenGL 3.3 core (or the exact API/profile needed) to reduce source size and compile time.
-- Ensure generated GLAD source files have normal permissions (they currently have executable mode from copy).
-- Pin/regenerate GLAD alongside a known GLAD generator version and document extensions/features enabled.
+TODO / possible improvements
 
 main.cpp / application code
-- Call `glfwTerminate()` on the GLAD initialization failure path.
-- Set an initial viewport on startup; do not rely only on the resize callback.
-- Add a GLFW error callback (`glfwSetErrorCallback`) for clearer diagnostics.
-- Handle ESC/input to close the window without relying on the window's close button.
-- Replace magic constants (800, 600, title string) with named constants or configuration variables.
-- Consider setting `glfwSwapInterval(1)` to avoid busy-loop rendering and excessive CPU usage.
-- Clarify depth buffer/clearing strategy once geometry is added (`GL_DEPTH_BUFFER_BIT`, depth test enable).
-- Use `std::cerr`/logging consistently; include `<iostream>` is already needed, but logging could be centralized later.
-- Avoid platform `#ifdef` duplication by adding other platform-specific forward-compat hints if cross-platform support grows.
+- Add resource cleanup before exit: delete the shader program, VAO, and VBO (or use RAII handles).
+- Shader file loading depends on the current working directory. Make paths robust by reading relative to __FILE__, copying shaders into the build directory with CMake, or configuring a shader directory macro.
+- Fail fast when shader loading or compilation fails; checkCompileErrors currently only logs and main continues with an invalid program.
+- Add a GLFW error callback (glfwSetErrorCallback) for clearer diagnostics.
+- Call glfwTerminate() on the GLAD initialization failure path.
+- Enable VSync with glfwSwapInterval(1) to avoid a busy rendering loop and high CPU usage.
+- Add OpenGL debug/error checking, especially in Debug builds (glDebugMessageCallback or glGetError).
+- Make vertex attribute constants (component count, triangle vertex count) named instead of repeated magic numbers.
+- Consider preserving the VBO/VAO state more explicitly; createVertexObjects leaves only the VAO returned while the VBO handle goes out of scope.
+- Add depth handling when moving beyond 2D: enable depth testing and clear GL_DEPTH_BUFFER_BIT.
 - Add frame timing/delta time once interaction or animation is introduced.
-- Keep GLAD include before GLFW include (currently correct); document this ordering requirement.
 
-Project structure / future refactoring
-- Separate windowing, input, rendering, and application lifecycle into small classes/modules as features grow.
-- Add shader/texture/mesh utility modules only when needed, keeping early learning project readable.
-- Add a minimal test or smoke target that at least compiles and links, plus CI configuration later.
-- Add `.clang-format` and `.clang-tidy` (or repo-wide formatting rules) for consistent style.
-- Store assets/resources under a dedicated directory and copy them at build time if required.
-- Track future lesson checkpoints/branches so each OpenGL concept can be compared independently.
+Shader / rendering behavior
+- Existing triangle placement depends on NDC and the framebuffer aspect ratio; account for aspect ratio if the geometry must keep its proportions.
+- Keep shader color constants reviewable; object/material colors are currently hard-coded in fragShader.glsl.
+
+CMake / build system
+- Fix the target name typo: hello_triagnle -> hello_triangle.
+- Avoid the dl lookup probe on modern Linux or document why it is needed.
+- Copy vertShader.glsl and fragShader.glsl to the build output or otherwise guarantee runtime access.
+- Update README project/lesson descriptions so they match 02_Hello_Triangle.
+
+Project structure / style
+- Add .clang-format and .clang-tidy rules.
+- Keep includes ordered and remove duplicate blank lines where introduced.
+- Use std::cerr consistently for diagnostics (README/project TODO requested this).
+- Track lesson checkpoints/branches so each OpenGL concept can be compared independently.
