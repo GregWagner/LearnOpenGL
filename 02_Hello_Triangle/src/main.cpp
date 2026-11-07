@@ -4,7 +4,9 @@
 
 #include <array>
 
+#include <fstream>
 #include <iostream>
+#include <sstream>
 #include <string>
 
 namespace {
@@ -18,18 +20,6 @@ constexpr float clearColorGreen{0.3F};
 constexpr float clearColorBlue{0.3F};
 constexpr float clearColorAlpha{1.0F};
 
-const char *const vertexShaderSource = "#version 330 core\n"
-                                       "layout (location = 0) in vec3 aPos;\n"
-                                       "void main()\n"
-                                       "{\n"
-                                       "   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-                                       "}\0";
-const char *const fragmentShaderSource = "#version 330 core\n"
-                                         "out vec4 FragColor;\n"
-                                         "void main()\n"
-                                         "{\n"
-                                         "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
-                                         "}\n\0";
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
     glViewport(0, 0, width, height);
@@ -85,9 +75,23 @@ void checkCompileErrors(unsigned int object, const std::string &type) {
     }
 }
 
+std::string readShaderFile(const std::string &path) {
+    std::ifstream file(path);
+    if (!file.is_open()) {
+        std::cerr << "Failed to open shader file: " << path << '\n';
+        return {};
+    }
+
+    std::ostringstream buffer;
+    buffer << file.rdbuf();
+    return buffer.str();
+}
+
 unsigned int buildVertexShader() {
     auto vertexShader{glCreateShader(GL_VERTEX_SHADER)};
-    glShaderSource(vertexShader, 1, &vertexShaderSource, nullptr);
+    const std::string vertexShaderSource{readShaderFile("vertShader.glsl")};
+    const char *vertexShaderSourcePtr{vertexShaderSource.c_str()};
+    glShaderSource(vertexShader, 1, &vertexShaderSourcePtr, nullptr);
     glCompileShader(vertexShader);
 
     // check for shader compile errors
@@ -97,7 +101,9 @@ unsigned int buildVertexShader() {
 
 unsigned int buildFragmentShader() {
     auto fragmentShader{glCreateShader(GL_FRAGMENT_SHADER)};
-    glShaderSource(fragmentShader, 1, &fragmentShaderSource, nullptr);
+    const std::string fragmentShaderSource{readShaderFile("fragShader.glsl")};
+    const char *fragmentShaderSourcePtr{fragmentShaderSource.c_str()};
+    glShaderSource(fragmentShader, 1, &fragmentShaderSourcePtr, nullptr);
     glCompileShader(fragmentShader);
 
     // check for shader compile errors
@@ -129,9 +135,7 @@ unsigned int buildShaderProgram() {
     return shaderProgram;
 }
 
-/*
- * Setup the triangle geometry on the GPU 
- */
+// setup the triangle geometry on the GPU
 unsigned int createVertexObjects() {
     std::array<float, 9> triangleVertices = {
         -0.5F,
@@ -176,6 +180,16 @@ void processInput(GLFWwindow *window) {
     }
 }
 
+void initializeViewport(GLFWwindow *window) {
+    // Query the actual framebuffer size instead of assuming SCR_WIDTH/SCR_HEIGHT:
+    // on HiDPI displays the framebuffer can be larger than the window, and
+    // using the wrong size would leave the viewport/geometry off-center.
+    int framebufferWidth{};
+    int framebufferHeight{};
+    glfwGetFramebufferSize(window, &framebufferWidth, &framebufferHeight);
+    glViewport(0, 0, framebufferWidth, framebufferHeight);
+}
+
 void renderLoop(GLFWwindow *window, unsigned int shaderProgram, unsigned int VAO) {
     while (glfwWindowShouldClose(window) == GLFW_FALSE) {
         processInput(window);
@@ -205,13 +219,7 @@ int main() {
         glfwTerminate();
         return -1;
     }
-    // Query the actual framebuffer size instead of assuming SCR_WIDTH/SCR_HEIGHT:
-    // on HiDPI displays the framebuffer can be larger than the window, and
-    // using the wrong size would leave the viewport/geometry off-center.
-    int framebufferWidth{};
-    int framebufferHeight{};
-    glfwGetFramebufferSize(window, &framebufferWidth, &framebufferHeight);
-    glViewport(0, 0, framebufferWidth, framebufferHeight);
+    initializeViewport(window);
 
     auto shaderProgram{buildShaderProgram()};
     auto VAO{createVertexObjects()};
