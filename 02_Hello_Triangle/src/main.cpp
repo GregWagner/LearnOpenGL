@@ -5,6 +5,7 @@
 #include <array>
 
 #include <iostream>
+#include <string>
 
 namespace {
 
@@ -65,19 +66,32 @@ bool initGlad() {
     return true;
 }
 
+void checkCompileErrors(unsigned int object, const std::string &type) {
+    int success{};
+    std::array<char, infoLogSize> infoLog{};
+
+    if (type != "PROGRAM") {
+        glGetShaderiv(object, GL_COMPILE_STATUS, &success);
+        if (success == GL_FALSE) {
+            glGetShaderInfoLog(object, infoLogSize, nullptr, infoLog.data());
+            std::cerr << "ERROR::SHADER::" << type << "::COMPILATION_FAILED\n" << infoLog.data() << '\n';
+        }
+    } else {
+        glGetProgramiv(object, GL_LINK_STATUS, &success);
+        if (success == GL_FALSE) {
+            glGetProgramInfoLog(object, infoLogSize, nullptr, infoLog.data());
+            std::cerr << "ERROR::PROGRAM_LINKING_ERROR of type: " << type << '\n' << infoLog.data() << '\n';
+        }
+    }
+}
+
 unsigned int buildVertexShader() {
     auto vertexShader{glCreateShader(GL_VERTEX_SHADER)};
     glShaderSource(vertexShader, 1, &vertexShaderSource, nullptr);
     glCompileShader(vertexShader);
 
     // check for shader compile errors
-    int success{};
-    std::array<char, infoLogSize> infoLog{};
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-    if (success == GL_FALSE) {
-        glGetShaderInfoLog(vertexShader, infoLogSize, nullptr, infoLog.data());
-        std::cerr << "Error::Shader::Vertex::Compilation failed\n" << infoLog.data() << '\n';
-    }
+    checkCompileErrors(vertexShader, "VERTEX");
     return vertexShader;
 }
 
@@ -87,13 +101,7 @@ unsigned int buildFragmentShader() {
     glCompileShader(fragmentShader);
 
     // check for shader compile errors
-    int success{};
-    std::array<char, infoLogSize> infoLog{};
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-    if (success == GL_FALSE) {
-        glGetShaderInfoLog(fragmentShader, infoLogSize, nullptr, infoLog.data());
-        std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog.data() << '\n';
-    }
+    checkCompileErrors(fragmentShader, "FRAGMENT");
     return fragmentShader;
 }
 
@@ -104,13 +112,7 @@ unsigned int linkShaders(unsigned int vertexShader, unsigned int fragmentShader)
     glLinkProgram(shaderProgram);
 
     // check for linking errors
-    int success{};
-    std::array<char, infoLogSize> infoLog{};
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-    if (success == GL_FALSE) {
-        glGetProgramInfoLog(shaderProgram, infoLogSize, nullptr, infoLog.data());
-        std::cout << "Error::Shader::Program::Linking Failed\n" << infoLog.data() << '\n';
-    }
+    checkCompileErrors(shaderProgram, "PROGRAM");
     return shaderProgram;
 }
 
@@ -127,30 +129,33 @@ unsigned int buildShaderProgram() {
     return shaderProgram;
 }
 
+/*
+ * Setup the triangle geometry on the GPU 
+ */
 unsigned int createVertexObjects() {
-    std::array<float, 9> vertices = {
+    std::array<float, 9> triangleVertices = {
         -0.5F,
-        -0.5F,
+        -1.0F / 3.0F,
         0.0F, // left
         0.5F,
-        -0.5F,
+        -1.0F / 3.0F,
         0.0F, // right
         0.0F,
-        0.5F,
+        2.0F / 3.0F,
         0.0F // top
     };
 
     unsigned int VBO{};
-    unsigned int VAO{};
-
-    glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
+
+    unsigned int VAO{};
+    glGenVertexArrays(1, &VAO);
 
     // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
     glBindVertexArray(VAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(triangleVertices), triangleVertices.data(), GL_STATIC_DRAW);
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
     glEnableVertexAttribArray(0);
@@ -200,6 +205,10 @@ int main() {
         glfwTerminate();
         return -1;
     }
+    int framebufferWidth{};
+    int framebufferHeight{};
+    glfwGetFramebufferSize(window, &framebufferWidth, &framebufferHeight);
+    glViewport(0, 0, framebufferWidth, framebufferHeight);
 
     auto shaderProgram{buildShaderProgram()};
     auto VAO{createVertexObjects()};
