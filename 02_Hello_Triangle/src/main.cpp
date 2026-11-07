@@ -205,6 +205,9 @@ int main() {
         glfwTerminate();
         return -1;
     }
+    // Query the actual framebuffer size instead of assuming SCR_WIDTH/SCR_HEIGHT:
+    // on HiDPI displays the framebuffer can be larger than the window, and
+    // using the wrong size would leave the viewport/geometry off-center.
     int framebufferWidth{};
     int framebufferHeight{};
     glfwGetFramebufferSize(window, &framebufferWidth, &framebufferHeight);
