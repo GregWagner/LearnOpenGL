@@ -1,0 +1,24 @@
+# Build output
+build/
+cmake-build-*/
+cmake-build-debug/
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+compile_commands.json
+
+# Editor/IDE metadata
+.cache/
+.idea/
+.vscode/
+
+# Generated dependencies/cache
+*.o
+*.a
+
+# System files
+.DS_Store
+Thumbs.db

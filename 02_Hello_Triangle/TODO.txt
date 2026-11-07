@@ -1,0 +1,35 @@
+TODO / possible improvements (review only, no code changed yet)
+
+CMake / build system
+- Project/target names are slightly awkward (`learn_opengl_01_creating_a_window`); choose shorter, consistent names.
+- Prefer vendoring GLFW/GLAD with documented versions, or use FetchContent/vcpkg, so the project is reproducible.
+- Remove the runtime `check_library_exists(dl dlopen ...)` probe if targeting modern Linux/glibc; it adds little value.
+- Add separate Debug/Release options, sanitizers, and maybe an `install`/export target later.
+- Consider precompiled headers or at least exclude the very large GLAD source from unnecessary rebuild pain.
+
+GLAD / OpenGL loader
+- Vendored GLAD is an older 0.1.36 generation requesting OpenGL 4.6; the app only requests a 3.3 core context.
+- Regenerate GLAD for OpenGL 3.3 core (or the exact API/profile needed) to reduce source size and compile time.
+- Ensure generated GLAD source files have normal permissions (they currently have executable mode from copy).
+- Pin/regenerate GLAD alongside a known GLAD generator version and document extensions/features enabled.
+
+main.cpp / application code
+- Call `glfwTerminate()` on the GLAD initialization failure path.
+- Set an initial viewport on startup; do not rely only on the resize callback.
+- Add a GLFW error callback (`glfwSetErrorCallback`) for clearer diagnostics.
+- Handle ESC/input to close the window without relying on the window's close button.
+- Replace magic constants (800, 600, title string) with named constants or configuration variables.
+- Consider setting `glfwSwapInterval(1)` to avoid busy-loop rendering and excessive CPU usage.
+- Clarify depth buffer/clearing strategy once geometry is added (`GL_DEPTH_BUFFER_BIT`, depth test enable).
+- Use `std::cerr`/logging consistently; include `<iostream>` is already needed, but logging could be centralized later.
+- Avoid platform `#ifdef` duplication by adding other platform-specific forward-compat hints if cross-platform support grows.
+- Add frame timing/delta time once interaction or animation is introduced.
+- Keep GLAD include before GLFW include (currently correct); document this ordering requirement.
+
+Project structure / future refactoring
+- Separate windowing, input, rendering, and application lifecycle into small classes/modules as features grow.
+- Add shader/texture/mesh utility modules only when needed, keeping early learning project readable.
+- Add a minimal test or smoke target that at least compiles and links, plus CI configuration later.
+- Add `.clang-format` and `.clang-tidy` (or repo-wide formatting rules) for consistent style.
+- Store assets/resources under a dedicated directory and copy them at build time if required.
+- Track future lesson checkpoints/branches so each OpenGL concept can be compared independently.
